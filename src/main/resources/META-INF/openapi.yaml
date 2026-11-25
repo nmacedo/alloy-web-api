@@ -1,0 +1,123 @@
+openapi: 3.0.3
+info:
+  title: Alloy Web API
+  version: 0.1.0
+  description: >-
+    Interactive documentation for the generic Alloy API. POST bodies are JSON
+    objects. Solver sessions are held in memory by this API process.
+paths:
+  /validate:
+    post:
+      summary: Validate an Alloy model
+      description: Parses the supplied Alloy source and returns the existing API validation response.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ValidateRequest'
+            example:
+              model: "sig A {}\nrun {}"
+      responses:
+        '200':
+          description: Validation result (valid or Alloy parse error).
+          content:
+            text/json:
+              schema:
+                type: object
+  /getInstances:
+    post:
+      summary: Enumerate instances
+      description: >-
+        Starts or continues an in-memory solving session and returns up to
+        numberOfInstances solutions for the selected command.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InstancesRequest'
+            example:
+              model: "sig A {}\nrun {}"
+              numberOfInstances: 3
+              commandIndex: 0
+              sessionId: demo-session-1
+              parentId: ""
+      responses:
+        '200':
+          description: JSON array of instance results.
+          content:
+            text/json:
+              schema:
+                type: array
+                items:
+                  type: object
+  /getProjection:
+    post:
+      summary: Project the current solution
+      description: >-
+        Projects a solution from an existing solver session. Call /getInstances
+        first and use its sessionId and an atom label from the returned instance.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProjectionRequest'
+            example:
+              sessionId: demo-session-1
+              type:
+                - A$0
+              index: 0
+      responses:
+        '200':
+          description: JSON array containing the projected instance result.
+          content:
+            text/json:
+              schema:
+                type: array
+                items:
+                  type: object
+components:
+  schemas:
+    ValidateRequest:
+      type: object
+      required: [model]
+      properties:
+        model:
+          type: string
+          description: Alloy source code.
+    InstancesRequest:
+      type: object
+      required: [model, numberOfInstances, commandIndex, sessionId, parentId]
+      properties:
+        model:
+          type: string
+          description: Alloy source code.
+        numberOfInstances:
+          type: integer
+          description: Maximum number of instances to return.
+        commandIndex:
+          type: integer
+          description: Zero-based command index in the model.
+        sessionId:
+          type: string
+          description: Identifier for this solver session.
+        parentId:
+          type: string
+          description: Parent solver-session identifier, or an empty string.
+    ProjectionRequest:
+      type: object
+      required: [sessionId, type, index]
+      properties:
+        sessionId:
+          type: string
+          description: Existing solver-session identifier from /getInstances.
+        type:
+          type: array
+          items:
+            type: string
+          description: Atom label(s) to use for projection.
+        index:
+          type: integer
+          description: Zero-based solution index in the session.
