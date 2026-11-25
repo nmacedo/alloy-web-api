@@ -36,9 +36,11 @@ and run it with `mvn test`.
 The project uses the published Alloy 6.2.0 distribution artifact from Maven
 Central.
 
-This checkout is a standalone project prepared for its own repository. Keep its
-build and tests independent of the Alloy4Fun checkout; repository initialization,
-release versioning, tags, and publishing are maintainer actions.
+This project is maintained in the public
+[`nmacedo/alloy-web-api`](https://github.com/nmacedo/alloy-web-api) repository.
+Keep its build and tests independent of the Alloy4Fun checkout. Create a
+versioned release after projection behavior and its regression tests meet the
+A4F 2.0 criteria.
 
 `/getStats` is intentionally not part of this project; it remains in the
 Alloy4Fun-specific API.

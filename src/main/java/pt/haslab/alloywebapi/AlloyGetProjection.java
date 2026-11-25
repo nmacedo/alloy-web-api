@@ -40,7 +40,7 @@ public class AlloyGetProjection {
 			File tempFile = File.createTempFile("a4f", "als");
 			tempFile.deleteOnExit();
 			LOGGER.info("Projecting "+req.type+" at "+req.index);
-			sol.writeXML(tempFile.getAbsolutePath());
+			sol.writeXML(tempFile.getAbsolutePath(), SolutionManager.getSkolem(req.uuid));
 			AlloyInstance myInstance = StaticInstanceReader.parseInstance(tempFile.getAbsoluteFile(),0);
 			
 			JsonArrayBuilder jsonResponseBuilder = Json.createArrayBuilder();

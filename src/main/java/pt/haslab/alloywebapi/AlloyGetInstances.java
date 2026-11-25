@@ -254,6 +254,7 @@ public class AlloyGetInstances {
 		atomJSON.add("name", signature.getName());
 		AlloyType pr = answer.model.getSuperType(signature);
 		atomJSON.add("parent", pr == null ? "null" : pr.toString());
+		atomJSON.add("isVar", signature.isVar);
 		
 		JsonArrayBuilder instancesJSON = Json.createArrayBuilder();
 		for (AlloyAtom at : answer.type2atoms(signature)) {
@@ -284,6 +285,10 @@ public class AlloyGetInstances {
 	static private JsonObjectBuilder relToJSON(AlloyInstance answer, AlloyRelation rel) {
 		JsonObjectBuilder atomJSON = Json.createObjectBuilder();
 		atomJSON.add("name", rel.getName());
+		JsonArrayBuilder typesJSON = Json.createArrayBuilder();
+		for (AlloyType type : rel.getTypes())
+			typesJSON.add(type.getName());
+		atomJSON.add("types", typesJSON);
 		
 		JsonArrayBuilder instancesJSON = Json.createArrayBuilder();
 		for (AlloyTuple atts : answer.relation2tuples(rel)) {

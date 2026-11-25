@@ -8,8 +8,11 @@ import static org.hamcrest.Matchers.notNullValue;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import io.quarkus.test.junit.QuarkusTest;
@@ -47,6 +50,51 @@ class AlloyModelExamplesTest {
 	@Test
 	void enumeratesDynamicModelInstances() throws IOException {
 		enumerate("dynamic/valid.als", "dynamic");
+	}
+
+	@Test
+	void projectsAnInstanceFromAnExistingSolverSession() throws IOException {
+		String sessionId = "projection-" + UUID.randomUUID();
+		String model = "sig A { r: B -> C }\nsig B {}\nsig C {}\nrun { some A.r } for 2";
+
+		String instances = given()
+				.contentType(ContentType.JSON)
+				.body(jsonInstancesRequestForModel(model, sessionId))
+				.when().post("/getInstances")
+				.then().statusCode(200)
+					.body("[0].unsat", is(false))
+					.extract().asString();
+		Assertions.assertEquals(List.of("A", "B", "C"), relationTypes(instances,
+				"[0].instance[0].rels", "r"));
+		List<Map<String, Object>> instanceTypes = JsonPath.from(instances)
+				.getList("[0].instance[0].types");
+		String focusedAtom = instanceTypes.stream()
+				.filter(type -> "A".equals(type.get("name")))
+				.map(type -> (List<String>) type.get("atoms"))
+				.filter(atoms -> !atoms.isEmpty())
+				.findFirst()
+				.orElseThrow(() -> new AssertionError("Fixture produced no A atoms"))
+				.get(0);
+
+		String projected = given()
+				.contentType(ContentType.JSON)
+				.body("{\"sessionId\":\"" + sessionId
+						+ "\",\"type\":[\"" + focusedAtom + "\"],\"index\":0}")
+				.when().post("/getProjection")
+				.then().statusCode(200)
+					.body("[0].types", notNullValue())
+					.extract().asString();
+		Assertions.assertFalse(relationTypes(projected, "[0].rels", "r").isEmpty());
+	}
+
+	@SuppressWarnings("unchecked")
+	private List<String> relationTypes(String response, String relationsPath, String relationName) {
+		List<Map<String, Object>> relations = JsonPath.from(response).getList(relationsPath);
+		return relations.stream()
+				.filter(relation -> relationName.equals(relation.get("name")))
+				.map(relation -> (List<String>) relation.get("types"))
+				.findFirst()
+				.orElseThrow(() -> new AssertionError("Missing relation " + relationName));
 	}
 
 	@Test
@@ -109,9 +157,13 @@ class AlloyModelExamplesTest {
 	}
 
 	private String jsonInstancesRequest(String fixture, String prefix) throws IOException {
-		return "{\"model\":" + quote(readFixture(fixture))
+		return jsonInstancesRequestForModel(readFixture(fixture), prefix + "-" + UUID.randomUUID());
+	}
+
+	private String jsonInstancesRequestForModel(String model, String sessionId) {
+		return "{\"model\":" + quote(model)
 				+ ",\"numberOfInstances\":1,\"commandIndex\":0"
-				+ ",\"sessionId\":" + quote(prefix + "-" + UUID.randomUUID())
+				+ ",\"sessionId\":" + quote(sessionId)
 				+ ",\"parentId\":\"\"}";
 	}
 
